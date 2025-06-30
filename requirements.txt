@@ -7,3 +7,4 @@ cachetools==5.5.0
 requests>=2.31.0
 playwright
 spotifyscraper==2.1.5
+selenium
