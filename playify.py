@@ -632,21 +632,21 @@ def get_soundcloud_station_url(track_id):
         return f"https://soundcloud.com/discover/sets/track-stations:{track_id}"
     return None
 
-# --- FONCTION FINALE PROCESS_SPOTIFY_URL (Architecture en Cascade) ---
-# CETTE FONCTION EST MAINTENANT CORRECTE ET NE DOIT PAS ÊTRE MODIFIÉE
+# --- FINAL FUNCTION PROCESS_SPOTIFY_URL (Cascade Architecture) ---
+# THIS FUNCTION IS NOW CORRECT AND SHOULD NOT BE MODIFIED
 async def process_spotify_url(url, interaction):
     """
-    Traite une URL Spotify avec une architecture en cascade :
-    1. Tente avec l'API officielle (spotipy) pour vitesse et complétude.
-    2. En cas d'échec (ex: playlist éditoriale), bascule sur le scraper (spotifyscraper) en secours.
+    Process a Spotify URL using a cascade architecture:
+    1. Try the official API (spotipy) for speed and completeness.
+    2. If it fails (e.g., editorial playlist), switch to the scraper (spotifyscraper) as a backup.
     """
     guild_id = interaction.guild_id
     clean_url = url.split('?')[0]
     
-    # --- MÉTHODE 1 : API OFFICIELLE (SPOTIPY) ---
+    # --- METHOD 1: OFFICIAL API (SPOTIPY) ---
     if sp:
         try:
-            logger.info(f"Tentative 1 : API officielle (Spotipy) pour {clean_url}")
+            logger.info(f"Attempt 1: Official API (Spotipy) for {clean_url}")
             tracks_to_return = []
             
             loop = asyncio.get_event_loop()
@@ -683,18 +683,18 @@ async def process_spotify_url(url, interaction):
                     tracks_to_return.append((track['name'], track['artists'][0]['name']))
 
             if not tracks_to_return:
-                 raise ValueError("Aucune piste trouvée via l'API.")
+                 raise ValueError("No tracks found via API.")
 
-            logger.info(f"Succès avec Spotipy : {len(tracks_to_return)} pistes récupérées.")
+            logger.info(f"Success with Spotipy : {len(tracks_to_return)} tracks recovered.")
             return tracks_to_return
 
         except Exception as e:
-            logger.warning(f"L'API Spotipy a échoué pour {clean_url} (Raison: {e}). Passage au plan B : SpotifyScraper.")
+            logger.warning(f"L'Spotipy API failed for {clean_url} (Reason: {e}). Moving on to plan B: SpotifyScraper.")
 
-    # --- MÉTHODE 2 : SECOURS (SPOTIFYSCRAPER) ---
+    # --- METHOD 2: RESCUE (SPOTIFYSCRAPER) ---
     if spotify_scraper_client:
         try:
-            logger.info(f"Tentative 2 : Scraper (SpotifyScraper) pour {clean_url}")
+            logger.info(f"Attempt 2: Scraper (SpotifyScraper) to {clean_url}")
             tracks_to_return = []
             loop = asyncio.get_event_loop()
 
@@ -713,20 +713,20 @@ async def process_spotify_url(url, interaction):
                 tracks_to_return.append((data.get('name', 'Titre inconnu'), data.get('artists', [{}])[0].get('name', 'Artiste inconnu')))
 
             if not tracks_to_return:
-                raise SpotifyScraperError("Le scraper n'a trouvé aucune piste non plus.")
+                raise SpotifyScraperError("The scraper didn't find any leads either.")
 
-            logger.info(f"Succès avec SpotifyScraper : {len(tracks_to_return)} pistes récupérées (potentiellement limité).")
+            logger.info(f"Success with SpotifyScraper : {len(tracks_to_return)} tracks recovered (potentially limited).")
             return tracks_to_return
 
         except Exception as e:
-            logger.error(f"Les deux méthodes (API et Scraper) ont échoué. Erreur finale de SpotifyScraper: {e}", exc_info=True)
+            logger.error(f"Both methods (API and Scraper) failed. Final error from SpotifyScraper: {e}", exc_info=True)
             embed = Embed(description=get_messages("spotify_error", guild_id), color=0xFFB6C1 if get_mode(guild_id) else discord.Color.red())
             await interaction.followup.send(embed=embed, ephemeral=True)
             return None
 
-    logger.critical("Aucun client (Spotipy ou SpotifyScraper) n'est fonctionnel.")
-    # Optionnel : envoyer un message d'erreur si aucun client n'est dispo
-    embed = Embed(description="Erreur critique: les services Spotify sont inaccessibles.", color=discord.Color.dark_red())
+    logger.critical("No client (Spotipy or SpotifyScraper) is functional.")
+    # Optional: Send an error message if no client is available
+    embed = Embed(description="Critical error: Spotify services are inaccessible.", color=discord.Color.dark_red())
     await interaction.followup.send(embed=embed, ephemeral=True)
     return None
     
@@ -734,15 +734,15 @@ async def process_spotify_url(url, interaction):
 async def process_deezer_url(url, interaction):
     guild_id = interaction.guild_id
     try:
-        # Vérifier si c'est un lien de partage
+        # Check if it is a sharing link
         deezer_share_regex = re.compile(r'^(https?://)?(link\.deezer\.com)/s/.+$')
         if deezer_share_regex.match(url):
             logger.info(f"Detected Deezer share link: {url}. Resolving redirect...")
             response = requests.head(url, allow_redirects=True, timeout=10)
-            response.raise_for_status()  # Vérifier si la requête a réussi
+            response.raise_for_status()  # Check if the request was successful
             resolved_url = response.url
             logger.info(f"Resolved to: {resolved_url}")
-            url = resolved_url  # Remplacer par l'URL résolue
+            url = resolved_url  # Replace with the resolved URL
 
         parsed_url = urlparse(url)
         path_parts = parsed_url.path.strip('/').split('/')
@@ -839,7 +839,7 @@ async def process_deezer_url(url, interaction):
     except requests.exceptions.RequestException as e:
         logger.error(f"Network error fetching Deezer URL {url}: {e}")
         embed = Embed(
-            description="Erreur réseau lors de la récupération des données Deezer. Réessayez plus tard.",
+            description="Network error while retrieving Deezer data. Try again later..",
             color=0xFFB6C1 if get_mode(guild_id) else discord.Color.red()
         )
         await interaction.followup.send(embed=embed, ephemeral=True)
@@ -970,15 +970,15 @@ async def process_tidal_url(url, interaction):
 
     # --- La fonction interne pour les listes reste inchangée ---
     async def load_and_extract_all_tracks(page):
-        logger.info("Début du chargement fiable (piste par piste)...")
+        logger.info("Reliable start of loading (piste par piste)...")
         total_tracks_expected = 0
         try:
             meta_item_selector = 'span[data-test="grid-item-meta-item-count"]'
             meta_text = await page.locator(meta_item_selector).first.inner_text(timeout=3000)
             total_tracks_expected = int(re.search(r'\d+', meta_text).group())
-            logger.info(f"Objectif : Extraire {total_tracks_expected} pistes.")
+            logger.info(f"Objective: Extract {total_tracks_expected} tracks.")
         except Exception:
-            logger.warning("Impossible de déterminer le nombre total de pistes.")
+            logger.warning("Unable to determine the total number of tracks.")
             total_tracks_expected = 0
         track_row_selector = 'div[data-track-id]'
         all_tracks = []
@@ -987,7 +987,7 @@ async def process_tidal_url(url, interaction):
         max_loops = 500
         for i in range(max_loops):
             if total_tracks_expected > 0 and len(all_tracks) >= total_tracks_expected:
-                logger.info("Toutes les pistes attendues ont été trouvées. Arrêt anticipé.")
+                logger.info("All expected leads have been found. Early stop.")
                 break
             track_elements = await page.query_selector_all(track_row_selector)
             if not track_elements and i > 0: break
@@ -1008,13 +1008,13 @@ async def process_tidal_url(url, interaction):
             if not new_tracks_found_in_loop and i > 1:
                 stagnation_counter += 1
                 if stagnation_counter >= 5:
-                    logger.info("Stagnation stable. Fin du processus.")
+                    logger.info("Stable stagnation. End of process..")
                     break
             else: stagnation_counter = 0
             if track_elements:
                 await track_elements[-1].scroll_into_view_if_needed(timeout=10000)
                 await asyncio.sleep(0.75)
-        logger.info(f"Processus terminé. Total final des pistes uniques extraites : {len(all_tracks)}")
+        logger.info(f"Process completed. Final total of unique tracks extracted. : {len(all_tracks)}")
         return list(dict.fromkeys(all_tracks))
 
     # --- Logique principale ---
@@ -1031,13 +1031,13 @@ async def process_tidal_url(url, interaction):
         elif 'video' in path_parts: resource_type = 'video'
 
         if resource_type is None:
-            raise ValueError("URL Tidal non supportée.")
+            raise ValueError("Tidal URL not supported.")
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page(user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
             await page.goto(clean_url, wait_until="domcontentloaded") # Utiliser domcontentloaded est plus rapide
-            logger.info(f"Navigation vers l'URL Tidal ({resource_type}) : {clean_url}")
+            logger.info(f"Navigating to the Tidal URL ({resource_type}) : {clean_url}")
             
             # Attente initiale un peu plus longue pour les pages complexes
             await asyncio.sleep(3)
@@ -1047,7 +1047,7 @@ async def process_tidal_url(url, interaction):
                 unique_tracks = await load_and_extract_all_tracks(page)
             
             elif resource_type == 'track' or resource_type == 'video':
-                logger.info(f"Extraction d'un média unique ({resource_type})...")
+                logger.info(f"Extracting a single media ({resource_type})...")
                 try:
                     # Pour les titres et vidéos, on utilise une méthode plus directe
                     # qui ne dépend pas de la "visibilité" stricte de l'élément.
@@ -1063,14 +1063,14 @@ async def process_tidal_url(url, interaction):
                     artist = await page.locator(artist_selector).first.inner_text(timeout=5000)
                     
                     if not title or not artist:
-                        raise ValueError("Titre ou artiste manquant.")
+                        raise ValueError("Missing title or artist.")
                     
-                    logger.info(f"Média unique trouvé : {title.strip()} - {artist.strip()}")
+                    logger.info(f"Unique media found : {title.strip()} - {artist.strip()}")
                     unique_tracks = [(title.strip(), artist.strip())]
 
                 except Exception as e:
                     # Si la méthode directe échoue, on tente la méthode du titre de la page en dernier recours
-                    logger.warning(f"La méthode d'extraction directe a échoué ({e}), tentative avec le titre de la page...")
+                    logger.warning(f"Direct extraction method failed ({e}), attempt with page title...")
                     try:
                         page_title = await page.title()
                         title, artist = "", ""
@@ -1081,21 +1081,21 @@ async def process_tidal_url(url, interaction):
                             parts = page_title.split(' by ')
                             title, artist = parts[0], parts[1].split(' on TIDAL')[0]
                         
-                        if not title or not artist: raise ValueError("Le format du titre de la page est inconnu.")
+                        if not title or not artist: raise ValueError("The page title format is unknown.")
                         
-                        logger.info(f"Média unique trouvé via le titre de la page : {title.strip()} - {artist.strip()}")
+                        logger.info(f"Unique media found via page title : {title.strip()} - {artist.strip()}")
                         unique_tracks = [(title.strip(), artist.strip())]
                     except Exception as fallback_e:
                         await page.screenshot(path=f"tidal_{resource_type}_extraction_failed.png")
-                        raise ValueError(f"Toutes les méthodes d'extraction ont échoué. Erreur finale: {fallback_e}")
+                        raise ValueError(f"All extraction methods failed. Final error.: {fallback_e}")
             
             if not unique_tracks:
-                raise ValueError("Aucune piste n'a pu être extraite de la ressource Tidal.")
+                raise ValueError("No tracks could be retrieved from the Tidal resource.")
 
             return unique_tracks
 
     except Exception as e:
-        logger.error(f"Erreur majeure dans process_tidal_url pour {url}: {e}")
+        logger.error(f"Major error in process_tidal_url for {url}: {e}")
         if interaction:
              embed = Embed(description=get_messages("tidal_error", guild_id), color=0xFFB6C1 if get_mode(guild_id) else discord.Color.red())
              await interaction.followup.send(embed=embed, ephemeral=True)
@@ -1104,7 +1104,7 @@ async def process_tidal_url(url, interaction):
 
 async def process_amazon_music_url(url, interaction):
     guild_id = interaction.guild_id
-    logger.info(f"Lancement du traitement unifié pour l'URL Amazon Music : {url}")
+    logger.info(f"Launch of unified processing for Amazon Music URL : {url}")
     
     # Étape 1 : Déterminer le type de lien
     is_album = "/albums/" in url
@@ -1121,24 +1121,24 @@ async def process_amazon_music_url(url, interaction):
             page = await context.new_page()
             
             await page.goto(url, wait_until="domcontentloaded", timeout=60000)
-            logger.info("Page chargée. Gestion des cookies.")
+            logger.info("Page loaded. Cookie management.")
             
             try:
                 await page.click('music-button:has-text("Accepter les cookies")', timeout=7000)
-                logger.info("Bannière de cookies acceptée.")
+                logger.info("Cookie banner accepted.")
             except Exception:
-                logger.info("Pas de bannière de cookies trouvée.")
+                logger.info("No cookie banner found.")
 
             tracks = []
 
-            # --- ÉTAPE 2: AIGUILLAGE VERS LA BONNE MÉTHODE D'EXTRACTION ---
+            # --- STEP 2: GUIDANCE TO THE CORRECT EXTRACTION METHOD ---
 
             if is_album or is_track:
                 # ======================================================
-                # MÉTHODE POUR ALBUMS ET PISTES (via JSON-LD)
+                # METHOD FOR ALBUMS AND TRACKS (via JSON-LD)
                 # ======================================================
                 page_type = "Album" if is_album else "Piste"
-                logger.info(f"Page de type '{page_type}' détectée. Utilisation de la méthode d'extraction JSON.")
+                logger.info(f"Type page '{page_type}' detected. Using the JSON extraction method.")
                 
                 selector = 'script[type="application/ld+json"]'
                 await page.wait_for_selector(selector, state='attached', timeout=20000)
@@ -1166,19 +1166,19 @@ async def process_amazon_music_url(url, interaction):
                         break
                 
                 if not found_data:
-                    raise ValueError(f"Aucune donnée de type 'MusicAlbum' ou 'MusicRecording' trouvée dans les balises JSON-LD.")
+                    raise ValueError(f"No data of type 'MusicAlbum' or 'MusicRecording' found in JSON-LD tags.")
 
             elif is_playlist:
                 # ======================================================
-                # MÉTHODE POUR PLAYLISTS (Extraction rapide)
+                # METHOD FOR PLAYLISTS (Quick Extraction)
                 # ======================================================
-                logger.info("Page de type 'Playlist' détectée. Utilisation de l'extraction rapide avant virtualisation.")
+                logger.info("Page of type 'Playlist' detected. Using fast extraction before virtualization.")
                 try:
                     await page.wait_for_selector("music-image-row[primary-text]", timeout=20000)
-                    logger.info("Liste de pistes détectée. Attente de 3.5 secondes pour le chargement initial.")
+                    logger.info("Tracklist detected. Waiting 3.5 seconds for initial load..")
                     await asyncio.sleep(3.5) # Temps crucial
                 except Exception as e:
-                    raise ValueError(f"Impossible de détecter la liste de pistes initiale : {e}")
+                    raise ValueError(f"Unable to detect initial tracklist : {e}")
 
                 js_script_playlist = """
                 () => {
@@ -1201,31 +1201,31 @@ async def process_amazon_music_url(url, interaction):
                 tracks = [(track['title'], track['artist']) for track in tracks_data]
 
             else:
-                raise ValueError("URL Amazon Music non reconnue (ni album, ni playlist, ni piste).")
+                raise ValueError("Amazon Music URL not recognized (neither album, nor playlist, nor track).")
 
             if not tracks:
-                raise ValueError("Aucune piste n'a pu être extraite de la page.")
+                raise ValueError("No tracks could be extracted from the page.")
 
-            logger.info(f"Traitement terminé. {len(tracks)} piste(s) trouvée(s). Première piste: {tracks[0]}")
+            logger.info(f"Processing completed. {len(tracks)} track(s) found. First track: {tracks[0]}")
             return tracks
 
     except Exception as e:
-        logger.error(f"Erreur finale dans process_amazon_music_url pour {url}: {e}", exc_info=True)
+        logger.error(f"Final error in process_amazon_music_url for {url}: {e}", exc_info=True)
         if 'page' in locals() and page and not page.is_closed():
              await page.screenshot(path="amazon_music_scrape_failed.png")
-             logger.info("Capture d'écran de l'erreur sauvegardée.")
+             logger.info("Screenshot of the error saved.")
         
         embed = Embed(description=get_messages("amazon_music_error", guild_id), color=0xFFB6C1 if get_mode(guild_id) else discord.Color.red())
         try:
             if interaction and not interaction.is_expired():
                 await interaction.followup.send(embed=embed, ephemeral=True)
         except Exception as send_error:
-            logger.error(f"Impossible d'envoyer le message d'erreur : {send_error}")
+            logger.error(f"Unable to send error message : {send_error}")
         return None
     finally:
         if browser:
             await browser.close()
-            logger.info("Navigateur Playwright fermé.")
+            logger.info("Playwright Browser Closed.")
         
 # /kaomoji command
 @bot.tree.command(name="kaomoji", description="Enable/disable kawaii mode")
@@ -1259,8 +1259,8 @@ async def set_language(interaction: discord.Interaction, language: str):
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="play", description="Jouer un lien ou chercher une chanson")
-@app_commands.describe(query="Lien ou titre de la chanson/vidéo à jouer")
+@bot.tree.command(name="play", description="Play a link or search for a song")
+@app_commands.describe(query="Link or title of the song/video to play")
 async def play(interaction: discord.Interaction, query: str):
     guild_id = interaction.guild_id
     is_kawaii = get_mode(guild_id)
@@ -1479,17 +1479,17 @@ async def play(interaction: discord.Interaction, query: str):
                         await message.edit(embed=embed)
                 await asyncio.sleep(0.1)
             
-            logger.info(f"Playlist Spotify traitée : {processed - failed} pistes ajoutées, {failed} échouées")
+            logger.info(f"Spotify playlist processed : {processed - failed} tracks added, {failed} failed")
             
             if processed - failed == 0:
                 embed = Embed(
-                    description="⚠️ Aucune piste n'a pu être ajoutée.",
+                    description="⚠️ No tracks could be added.",
                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
                 )
                 await message.edit(embed=embed)
                 return
 
-            failed_text = "\nPistes échouées (jusqu'à 5) :\n" + "\n".join([f"- {track}" for track in failed_tracks]) if failed_tracks else ""
+            failed_text = "\nFailed tracks (up to 5) :\n" + "\n".join([f"- {track}" for track in failed_tracks]) if failed_tracks else ""
             embed.title = get_messages("spotify_playlist_added", guild_id)
             embed.description = get_messages("spotify_playlist_description", guild_id).format(
                 count=processed - failed,
@@ -1504,7 +1504,7 @@ async def play(interaction: discord.Interaction, query: str):
         if not deezer_tracks:
             logger.warning(f"No tracks returned for Deezer URL: {query}")
             embed = Embed(
-                description="Aucune piste Deezer n'a pu être traitée. Vérifiez l'URL ou réessayez.",
+                description="No Deezer tracks could be processed. Check the URL or try again..",
                 color=0xFFB6C1 if is_kawaii else discord.Color.red()
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -1595,17 +1595,17 @@ async def play(interaction: discord.Interaction, query: str):
                         await message.edit(embed=embed)
                 await asyncio.sleep(0.1)
             
-            logger.info(f"Playlist Deezer traitée : {processed - failed} pistes ajoutées, {failed} échouées")
+            logger.info(f"Processed Deezer playlist : {processed - failed} tracks added, {failed} failed")
             
             if processed - failed == 0:
                 embed = Embed(
-                    description="⚠️ Aucune piste n'a pu être ajoutée à la file d'attente.",
+                    description="⚠️ No tracks could be added to the queue.",
                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
                 )
                 await message.edit(embed=embed)
                 return
 
-            failed_text = "\nPistes échouées (jusqu'à 5) :\n" + "\n".join([f"- {track}" for track in failed_tracks]) if failed_tracks else ""
+            failed_text = "\nFailed tracks (up to 5) :\n" + "\n".join([f"- {track}" for track in failed_tracks]) if failed_tracks else ""
             embed.title = get_messages("deezer_playlist_added", guild_id)
             embed.description = get_messages("deezer_playlist_description", guild_id).format(
                 count=processed - failed,
@@ -1637,11 +1637,11 @@ async def play(interaction: discord.Interaction, query: str):
                 info = await extract_info_async(ydl_opts_full, search_query)
                 video = info["entries"][0] if "entries" in info and info["entries"] else None
                 if not video:
-                    raise Exception("Aucun résultat trouvé")
+                    raise Exception("No results found")
                 video_url = video.get("webpage_url", video.get("url"))
                 if not video_url:
-                    raise KeyError("Aucune URL valide trouvée dans les métadonnées vidéo")
-                logger.debug(f"Métadonnées pour une piste Apple Music unique : {video}")
+                    raise KeyError("No valid URL found in video metadata")
+                logger.debug(f"Metadata for a single Apple Music track : {video}")
                 url_cache[cache_key] = video_url
                 await music_player.queue.put({'url': video_url, 'is_single': True, 'skip_now_playing': True})
                 embed = Embed(
@@ -1655,7 +1655,7 @@ async def play(interaction: discord.Interaction, query: str):
                     embed.set_footer(text="☆⌒(≧▽° )")
                 await interaction.followup.send(embed=embed)
             except Exception as e:
-                logger.error(f"Erreur de conversion Apple Music pour {query} : {e}")
+                logger.error(f"Apple Music Conversion Error for {query} : {e}")
                 embed = Embed(
                     description=get_messages("search_error", guild_id),
                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
@@ -1698,12 +1698,12 @@ async def play(interaction: discord.Interaction, query: str):
                 await asyncio.sleep(0.1)
             if processed - failed == 0:
                 embed = Embed(
-                    description="⚠️ Aucune piste n'a pu être ajoutée.",
+                    description="⚠️ Apple Music Conversion Error for.",
                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
                 )
                 await message.edit(embed=embed)
                 return
-            failed_text = "\nPistes échouées (jusqu'à 5) :\n" + "\n".join([f"- {track}" for track in failed_tracks]) if failed_tracks else ""
+            failed_text = "\nFailed tracks (up to 5) :\n" + "\n".join([f"- {track}" for track in failed_tracks]) if failed_tracks else ""
             embed.title = get_messages("apple_music_playlist_added", guild_id)
             embed.description = get_messages("apple_music_playlist_description", guild_id).format(
                 count=processed - failed,
@@ -1736,11 +1736,11 @@ async def play(interaction: discord.Interaction, query: str):
                 info = await extract_info_async(ydl_opts_full, search_query)
                 video = info["entries"][0] if "entries" in info and info["entries"] else None
                 if not video:
-                    raise Exception("Aucun résultat trouvé")
+                    raise Exception("No results found")
                 video_url = video.get("webpage_url", video.get("url"))
                 if not video_url:
-                    raise KeyError("Aucune URL valide trouvée dans les métadonnées vidéo")
-                logger.debug(f"Métadonnées pour une piste Tidal unique : {video}")
+                    raise KeyError("No valid URL found in video metadata")
+                logger.debug(f"Metadata for a single Tidal track : {video}")
                 url_cache[cache_key] = video_url
                 await music_player.queue.put({'url': video_url, 'is_single': True, 'skip_now_playing': True})
                 embed = Embed(
@@ -1754,7 +1754,7 @@ async def play(interaction: discord.Interaction, query: str):
                     embed.set_footer(text="☆⌒(≧▽° )")
                 await interaction.followup.send(embed=embed)
             except Exception as e:
-                logger.error(f"Erreur de conversion Tidal pour {query} : {e}")
+                logger.error(f"Tidal conversion error for {query} : {e}")
                 embed = Embed(
                     description=get_messages("search_error", guild_id),
                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
@@ -1797,12 +1797,12 @@ async def play(interaction: discord.Interaction, query: str):
                 await asyncio.sleep(0.1)
             if processed - failed == 0:
                 embed = Embed(
-                    description="⚠️ Aucune piste n'a pu être ajoutée.",
+                    description="⚠️ No tracks could be added.",
                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
                 )
                 await message.edit(embed=embed)
                 return
-            failed_text = "\nPistes échouées (jusqu'à 5) :\n" + "\n".join([f"- {track}" for track in failed_tracks]) if failed_tracks else ""
+            failed_text = "\nFailed tracks (up to 5) :\n" + "\n".join([f"- {track}" for track in failed_tracks]) if failed_tracks else ""
             embed.title = get_messages("tidal_playlist_added", guild_id)
             embed.description = get_messages("tidal_playlist_description", guild_id).format(
                 count=processed - failed,
@@ -1813,10 +1813,10 @@ async def play(interaction: discord.Interaction, query: str):
             await message.edit(embed=embed)
 
     elif amazon_music_regex.match(query):
-        logger.info(f"Tentative de traitement d'une URL Amazon Music : {query}")
+        logger.info(f"Attempting to process an Amazon Music URL : {query}")
         amazon_tracks = await process_amazon_music_url(query, interaction)
         if not amazon_tracks:
-            logger.error(f"Aucune piste Amazon Music extraite pour {query}")
+            logger.error(f"No Amazon Music tracks extracted for {query}")
             return
 
         if len(amazon_tracks) == 1:
@@ -1838,11 +1838,11 @@ async def play(interaction: discord.Interaction, query: str):
                 info = await extract_info_async(ydl_opts_full, search_query)
                 video = info["entries"][0] if "entries" in info and info["entries"] else None
                 if not video:
-                    raise Exception("Aucun résultat trouvé")
+                    raise Exception("No results found")
                 video_url = video.get("webpage_url", video.get("url"))
                 if not video_url:
-                    raise KeyError("Aucune URL valide trouvée dans les métadonnées vidéo")
-                logger.debug(f"Métadonnées pour une piste Amazon Music unique : {video}")
+                    raise KeyError("No valid URL found in video metadata")
+                logger.debug(f"Metadata for a single Amazon Music track : {video}")
                 url_cache[cache_key] = video_url
                 await music_player.queue.put({'url': video_url, 'is_single': True, 'skip_now_playing': True})
                 embed = Embed(
@@ -1856,7 +1856,7 @@ async def play(interaction: discord.Interaction, query: str):
                     embed.set_footer(text="☆⌒(≧▽° )")
                 await interaction.followup.send(embed=embed)
             except Exception as e:
-                logger.error(f"Erreur de conversion Amazon Music pour {query} : {e}")
+                logger.error(f"Amazon Music Conversion Error for {query} : {e}")
                 embed = Embed(
                     description=get_messages("search_error", guild_id),
                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
@@ -1899,12 +1899,12 @@ async def play(interaction: discord.Interaction, query: str):
                 await asyncio.sleep(0.1)
             if processed - failed == 0:
                 embed = Embed(
-                    description="⚠️ Aucune piste n'a pu être ajoutée.",
+                    description="⚠️ No tracks could be added.",
                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
                 )
                 await message.edit(embed=embed)
                 return
-            failed_text = "\nPistes échouées (jusqu'à 5) :\n" + "\n".join([f"- {track}" for track in failed_tracks]) if failed_tracks else ""
+            failed_text = "\nFailed tracks (up to 5) :\n" + "\n".join([f"- {track}" for track in failed_tracks]) if failed_tracks else ""
             embed.title = get_messages("amazon_music_playlist_added", guild_id)
             embed.description = get_messages("amazon_music_playlist_description", guild_id).format(
                 count=processed - failed,
@@ -2067,8 +2067,8 @@ async def queue(interaction: discord.Interaction):
             url = info.get("webpage_url", item['url'])
             next_songs.append(get_messages("queue_song", guild_id).format(title=title, url=url))
         except Exception as e:
-            logger.error(f"Erreur lors de l'extraction des infos : {e}")
-            next_songs.append("- Chanson inconnue")
+            logger.error(f"Error retrieving information : {e}")
+            next_songs.append("- Unknown song")
     
     embed = Embed(
         title=get_messages("queue_title", guild_id),
@@ -2269,7 +2269,7 @@ async def play_audio(guild_id):
                                         if entry_video_id and entry_video_id != current_video_id:
                                             await music_player.queue.put({'url': entry["url"], 'is_single': True})
                             except Exception as e:
-                                logger.error(f"Erreur YouTube Mix : {e}")
+                                logger.error(f"YouTube Mix Error : {e}")
                     elif "soundcloud.com" in music_player.current_url:
                         track_id = get_soundcloud_track_id(music_player.current_url)
                         if track_id:
@@ -2293,7 +2293,7 @@ async def play_audio(guild_id):
                                             if entry_track_id and entry_track_id != current_track_id:
                                                 await music_player.queue.put({'url': entry["url"], 'is_single': True})
                                 except Exception as e:
-                                    logger.error(f"Erreur SoundCloud Station : {e}")
+                                    logger.error(f"SoundCloud Station error : {e}")
                 else:
                     music_player.current_task = None
                     music_player.current_info = None
@@ -2350,7 +2350,7 @@ async def play_audio(guild_id):
                 }
                 music_player.voice_client.play(
                     discord.FFmpegPCMAudio(audio_url, **ffmpeg_options),
-                    after=lambda e: logger.error(f"Erreur : {e}") if e else None
+                    after=lambda e: logger.error(f"Error : {e}") if e else None
                 )
 
                 while music_player.voice_client.is_playing() or music_player.voice_client.is_paused():
@@ -2361,11 +2361,11 @@ async def play_audio(guild_id):
                     continue
 
             except Exception as e:
-                logger.error(f"Erreur de lecture audio pour {video_url}: {e}")
+                logger.error(f"Audio playback error for {video_url}: {e}")
                 continue
 
     except Exception as e:
-        logger.error(f"Erreur dans play_audio pour guild {guild_id}: {e}")
+        logger.error(f"Error in play_audio for guild {guild_id}: {e}")
 
 # /pause command
 @bot.tree.command(name="pause", description="Pause the current playback")
