@@ -7,7 +7,6 @@ import asyncio
 import yt_dlp
 import re
 import spotipy
-import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from spotify_scraper import SpotifyClient # <-- CORRECTED HERE
 from spotify_scraper.core.exceptions import SpotifyScraperError
@@ -25,7 +24,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Intents for the bot
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.guilds = True
 intents.voice_states = True
 
@@ -45,9 +44,9 @@ except Exception as e:
     sp = None
     logger.error(f"Unable to initialize the Spotipy client : {e}")
 
-# Client pour le Scraper (plan B, avec Selenium)
+# Client for the Scraper (plan B, with Selenium)
 try:
-    # On utilise le nom correct de la classe, sans alias
+    # We use the correct class name, without aliases
     spotify_scraper_client = SpotifyClient(browser_type="selenium") # <-- CORRECTED HERE
     logger.info("SpotifyScraper client successfully initialized in Selenium mode.")
 except Exception as e:
@@ -968,9 +967,9 @@ async def process_apple_music_url(url, interaction):
 async def process_tidal_url(url, interaction):
     guild_id = interaction.guild_id
 
-    # --- La fonction interne pour les listes reste inchangée ---
+    # --- The internal function for lists remains unchanged ---
     async def load_and_extract_all_tracks(page):
-        logger.info("Reliable start of loading (piste par piste)...")
+        logger.info("Reliable start of loading (track by track)...")
         total_tracks_expected = 0
         try:
             meta_item_selector = 'span[data-test="grid-item-meta-item-count"]'
@@ -1017,7 +1016,7 @@ async def process_tidal_url(url, interaction):
         logger.info(f"Process completed. Final total of unique tracks extracted. : {len(all_tracks)}")
         return list(dict.fromkeys(all_tracks))
 
-    # --- Logique principale ---
+    # --- Main logic ---
     try:
         clean_url = url.split('?')[0]
         parsed_url = urlparse(clean_url)
@@ -1036,10 +1035,10 @@ async def process_tidal_url(url, interaction):
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page(user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
-            await page.goto(clean_url, wait_until="domcontentloaded") # Utiliser domcontentloaded est plus rapide
+            await page.goto(clean_url, wait_until="domcontentloaded") # Using domcontentloaded is faster
             logger.info(f"Navigating to the Tidal URL ({resource_type}) : {clean_url}")
             
-            # Attente initiale un peu plus longue pour les pages complexes
+            # Initial wait a little longer for complex pages
             await asyncio.sleep(3)
             unique_tracks = []
 
@@ -1049,16 +1048,16 @@ async def process_tidal_url(url, interaction):
             elif resource_type == 'track' or resource_type == 'video':
                 logger.info(f"Extracting a single media ({resource_type})...")
                 try:
-                    # Pour les titres et vidéos, on utilise une méthode plus directe
-                    # qui ne dépend pas de la "visibilité" stricte de l'élément.
+                    # For titles and videos, we use a more direct method
+                    # which does not depend on the strict "visibility" of the element.
                     
-                    # On attend juste que le conteneur principal soit là
+                    # We're just waiting for the main container to arrive.
                     await page.wait_for_selector('div[data-test="artist-profile-header"], div[data-test="footer-player"]', timeout=10000)
 
                     title_selector = 'span[data-test="now-playing-track-title"], h1[data-test="title"]'
                     artist_selector = 'a[data-test="grid-item-detail-text-title-artist"]'
                     
-                    # On prend directement le texte du premier élément trouvé, sans attendre sa "visibilité"
+                    # We take the text of the first element found directly, without waiting for its "visibility"
                     title = await page.locator(title_selector).first.inner_text(timeout=5000)
                     artist = await page.locator(artist_selector).first.inner_text(timeout=5000)
                     
@@ -1069,7 +1068,7 @@ async def process_tidal_url(url, interaction):
                     unique_tracks = [(title.strip(), artist.strip())]
 
                 except Exception as e:
-                    # Si la méthode directe échoue, on tente la méthode du titre de la page en dernier recours
+                    # If the direct method fails, the page title method is tried as a last resort.
                     logger.warning(f"Direct extraction method failed ({e}), attempt with page title...")
                     try:
                         page_title = await page.title()
@@ -1106,7 +1105,7 @@ async def process_amazon_music_url(url, interaction):
     guild_id = interaction.guild_id
     logger.info(f"Launch of unified processing for Amazon Music URL : {url}")
     
-    # Étape 1 : Déterminer le type de lien
+    # Step 1: Determine the type of link
     is_album = "/albums/" in url
     is_playlist = "/playlists/" in url or "/user-playlists/" in url
     is_track = "/tracks/" in url
@@ -1137,7 +1136,7 @@ async def process_amazon_music_url(url, interaction):
                 # ======================================================
                 # METHOD FOR ALBUMS AND TRACKS (via JSON-LD)
                 # ======================================================
-                page_type = "Album" if is_album else "Piste"
+                page_type = "Album" if is_album else "Track"
                 logger.info(f"Type page '{page_type}' detected. Using the JSON extraction method.")
                 
                 selector = 'script[type="application/ld+json"]'
@@ -1308,6 +1307,7 @@ async def play(interaction: discord.Interaction, query: str):
         "no_color": True,
         "socket_timeout": 10,
         "force_generic_extractor": True,
+        "cookiefile": "/mnt/server/cookies.txt"
     }
 
     async def search_track(track):
@@ -1330,6 +1330,7 @@ async def play(interaction: discord.Interaction, query: str):
                 "noplaylist": True,
                 "no_color": True,
                 "socket_timeout": 10,
+                "cookiefile": "/mnt/server/cookies.txt"
             }
             
             search_query = f"ytsearch:{sanitized_query}"
@@ -1409,6 +1410,7 @@ async def play(interaction: discord.Interaction, query: str):
                     "no_color": True,
                     "socket_timeout": 10,
                     "force_generic_extractor": True,
+                    "cookiefile": "/mnt/server/cookies.txt"
                 }
                 sanitized_query = sanitize_query(query)
                 search_query = f"ytsearch:{sanitized_query}"
@@ -1433,7 +1435,7 @@ async def play(interaction: discord.Interaction, query: str):
                     embed.set_footer(text="☆⌒(≧▽° )")
                 await interaction.followup.send(embed=embed)
             except Exception as e:
-                logger.error(f"Erreur de conversion Spotify pour {query}: {e}")
+                logger.error(f"Spotify conversion error for {query}: {e}")
                 embed = Embed(
                     description=get_messages("search_error", guild_id),
                     color=0xFF9AA2 if is_kawaii else discord.Color.red()
@@ -1524,6 +1526,7 @@ async def play(interaction: discord.Interaction, query: str):
                     "no_color": True,
                     "socket_timeout": 10,
                     "force_generic_extractor": True,
+                    "cookiefile": "/mnt/server/cookies.txt"
                 }
                 sanitized_query = sanitize_query(query)
                 search_query = f"ytsearch:{sanitized_query}"
@@ -1631,6 +1634,7 @@ async def play(interaction: discord.Interaction, query: str):
                     "no_color": True,
                     "socket_timeout": 10,
                     "force_generic_extractor": True,
+                    "cookiefile": "/mnt/server/cookies.txt"
                 }
                 sanitized_query = sanitize_query(query)
                 search_query = f"ytsearch:{sanitized_query}"
@@ -1730,6 +1734,7 @@ async def play(interaction: discord.Interaction, query: str):
                     "no_color": True,
                     "socket_timeout": 10,
                     "force_generic_extractor": True,
+                    "cookiefile": "/mnt/server/cookies.txt"
                 }
                 sanitized_query = sanitize_query(query)
                 search_query = f"ytsearch:{sanitized_query}"
@@ -1832,6 +1837,7 @@ async def play(interaction: discord.Interaction, query: str):
                     "no_color": True,
                     "socket_timeout": 10,
                     "force_generic_extractor": True,
+                    "cookiefile": "/mnt/server/cookies.txt"
                 }
                 sanitized_query = sanitize_query(query)
                 search_query = f"ytsearch:{sanitized_query}"
@@ -1937,6 +1943,7 @@ async def play(interaction: discord.Interaction, query: str):
                 "no_color": True,
                 "socket_timeout": 10,
                 "force_generic_extractor": True,
+                "cookiefile": "/mnt/server/cookies.txt"
             }
             info = await extract_info_async(ydl_opts_playlist, query)
             
@@ -2000,6 +2007,7 @@ async def play(interaction: discord.Interaction, query: str):
                 "no_color": True,
                 "socket_timeout": 10,
                 "force_generic_extractor": True,
+                "cookiefile": "/mnt/server/cookies.txt"
             }
             sanitized_query = sanitize_query(query)
             search_query = f"ytsearch:{sanitized_query}"
@@ -2061,6 +2069,7 @@ async def queue(interaction: discord.Interaction):
                 "no_warnings": True,
                 "extract_flat": True,
                 "force_generic_extractor": True,
+                "cookiefile": "/mnt/server/cookies.txt"
             }
             info = await extract_info_async(ydl_opts, item['url'])
             title = info.get("title", "Unknown Title")
@@ -2148,6 +2157,7 @@ async def play_next(interaction: discord.Interaction, query: str):
                 "no_color": True,
                 "socket_timeout": 10,
                 "force_generic_extractor": True,
+                "cookiefile": "/mnt/server/cookies.txt"
             }
             info = await extract_info_async(ydl_opts, search_query)
             video = info["entries"][0] if "entries" in info and info["entries"] else None
@@ -2168,6 +2178,7 @@ async def play_next(interaction: discord.Interaction, query: str):
                 "no_color": True,
                 "socket_timeout": 10,
                 "force_generic_extractor": True,
+                "cookiefile": "/mnt/server/cookies.txt"
             }
             search_query = f"ytsearch:{sanitize_query(query)}" if not query.startswith(('http://', 'https://')) else query
             info = await extract_info_async(ydl_opts, search_query)
@@ -2259,6 +2270,7 @@ async def play_audio(guild_id):
                                 "no_color": True,
                                 "socket_timeout": 10,
                                 "force_generic_extractor": True,
+                                "cookiefile": "/mnt/server/cookies.txt"
                             }
                             try:
                                 info = await extract_info_async(ydl_opts, mix_playlist_url)
@@ -2283,6 +2295,7 @@ async def play_audio(guild_id):
                                     "no_color": True,
                                     "socket_timeout": 10,
                                     "force_generic_extractor": True,
+                                    "cookiefile": "/mnt/server/cookies.txt"
                                 }
                                 try:
                                     info = await extract_info_async(ydl_opts, station_url)
@@ -2323,6 +2336,7 @@ async def play_audio(guild_id):
                     "no_color": True,
                     "socket_timeout": 10,
                     "force_generic_extractor": True,
+                    "cookiefile": "/mnt/server/cookies.txt"
                 }
                 info = await extract_info_async(ydl_opts, video_url)
                 music_player.current_info = info
