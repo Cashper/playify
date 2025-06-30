@@ -9,7 +9,7 @@ import re
 import spotipy
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-from spotify_scraper import SpotifyClient # <-- CORRIGÉ ICI
+from spotify_scraper import SpotifyClient # <-- CORRECTED HERE
 from spotify_scraper.core.exceptions import SpotifyScraperError
 import random
 from urllib.parse import urlparse, parse_qs
@@ -17,7 +17,7 @@ from cachetools import TTLCache
 import logging
 import requests
 from playwright.async_api import async_playwright
-import json # Ajout de cet import
+import json
 import math
 
 # Configure logging
@@ -32,27 +32,27 @@ intents.voice_states = True
 # Create the bot
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Client pour l'API Officielle (rapide et prioritaire)
-SPOTIFY_CLIENT_ID = 'CLIENTIDHERE' # Votre ID
-SPOTIFY_CLIENT_SECRET = 'CLIENTSECRETHERE' # Votre Secret
+# Client for the Official API (fast and priority)
+SPOTIFY_CLIENT_ID = 'CLIENTIDHERE' # Your ID
+SPOTIFY_CLIENT_SECRET = 'CLIENTSECRETHERE' # Your Secret
 try:
     sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
         client_id=SPOTIFY_CLIENT_ID,
         client_secret=SPOTIFY_CLIENT_SECRET
     ))
-    logger.info("Client API Spotipy initialisé avec succès.")
+    logger.info("Spotipy API client initialized successfully.")
 except Exception as e:
     sp = None
-    logger.error(f"Impossible d'initialiser le client Spotipy : {e}")
+    logger.error(f"Unable to initialize the Spotipy client : {e}")
 
 # Client pour le Scraper (plan B, avec Selenium)
 try:
     # On utilise le nom correct de la classe, sans alias
-    spotify_scraper_client = SpotifyClient(browser_type="selenium") # <-- CORRIGÉ ICI
-    logger.info("Client SpotifyScraper initialisé avec succès en mode Selenium.")
+    spotify_scraper_client = SpotifyClient(browser_type="selenium") # <-- CORRECTED HERE
+    logger.info("SpotifyScraper client successfully initialized in Selenium mode.")
 except Exception as e:
     spotify_scraper_client = None
-    logger.error(f"Impossible d'initialiser SpotifyScraper : {e}")
+    logger.error(f"Unable to initialize SpotifyScraper : {e}")
 
 # Cache for YouTube searches (2-hour TTL, size for 500+ servers)
 url_cache = TTLCache(maxsize=75000, ttl=7200)
@@ -2526,10 +2526,10 @@ async def toggle_autoplay(interaction: discord.Interaction):
 
 @bot.event
 async def on_ready():
-    logger.info(f"{bot.user.name} est en ligne.")
+    logger.info(f"{bot.user.name} is now online.")
     try:
         synced = await bot.tree.sync()
-        logger.info(f"Commandes slash synchronisées : {len(synced)}")
+        logger.info(f"Synchronized slash commands : {len(synced)}")
 
         async def rotate_presence():
             while True:
@@ -2552,13 +2552,13 @@ async def on_ready():
                         )
                         await asyncio.sleep(10)
                     except Exception as e:
-                        logger.error(f"Erreur de changement de statut : {e}")
+                        logger.error(f"Status change error : {e}")
                         await asyncio.sleep(5)
 
         bot.loop.create_task(rotate_presence())
         
     except Exception as e:
-        logger.error(f"Erreur lors de la synchronisation des commandes : {e}")
+        logger.error(f"Error synchronizing commands : {e}")
 
 # Run the bot (replace with your own token)
 bot.run("TOKEN")
