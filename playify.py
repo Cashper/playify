@@ -689,7 +689,7 @@ async def process_spotify_url(url, interaction):
             return tracks_to_return
 
         except Exception as e:
-            logger.warning(f"L'Spotipy API failed for {clean_url} (Reason: {e}). Moving on to plan B: SpotifyScraper.")
+            logger.warning(f"Spotipy API failed for {clean_url} (Reason: {e}). Moving on to plan B: SpotifyScraper.")
 
     # --- METHOD 2: RESCUE (SPOTIFYSCRAPER) ---
     if spotify_scraper_client:
